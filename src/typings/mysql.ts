@@ -73,6 +73,8 @@ export interface UsedConnections {
   maxAge: number;
 }
 
+export type Rollback = (e?: any) => void;
+
 export interface DbClient extends Connection {
   connection: {
     stream: {
@@ -118,21 +120,17 @@ export interface DatabaseInterface {
    * @param sql query statament
    * @param values query parameters
    */
-  query: (qArgs: {
-    sql: string;
-    values?: QueryValues;
-    rollback?: (...args: any) => any;
-  }) => Promise<any>;
+  query: (qArgs: { sql: string; values?: QueryValues; rollback?: Rollback }) => Promise<any>;
 
-  commit: (queries: Query[], rollback: (...args: any) => any) => Promise<any>;
+  commit: (queries: Query[], rollback: Rollback) => Promise<any>;
 }
 
 export interface TransactionInterface {
   db: DatabaseInterface;
   queries: Query[];
-  rollback: (...args: any) => any;
+  rollback: Rollback;
 
   addQuery: ({ sql, values }: { sql: string; values?: QueryValues }) => void;
-  setRollback: (fn: (...args: any) => any) => void;
+  setRollback: (fn?: Rollback) => void;
   commit: () => Promise<any[] | QueryResult[]>;
 }

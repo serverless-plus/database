@@ -32,7 +32,7 @@ describe('Mysql test', () => {
       multipleStatements: true,
     });
     expect(db.options).toEqual({
-      debug: true,
+      debug: !process.env.CI,
       maxRetries: 50,
       sleepGap: 100,
       getMaxConnsFreq: 15 * 1000,

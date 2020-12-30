@@ -52,7 +52,7 @@ module.exports = {
     'no-empty': 'off',
     'no-shadow': 'error',
     'no-undef': 'error',
-    'no-unused-vars': 'error',
+    'no-unused-vars': 'warn',
     'no-use-before-define': 'error',
     'no-useless-constructor': 'error',
     'object-curly-newline': 'off',

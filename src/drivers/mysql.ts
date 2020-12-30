@@ -12,6 +12,7 @@ import {
   DatabaseInterface,
   TransactionInterface,
   QueryResult,
+  Rollback,
 } from '../typings';
 
 const ConnectionErrors = [
@@ -57,7 +58,7 @@ const DefaultOptions = {
 class Transaction implements TransactionInterface {
   db: DatabaseInterface;
   queries: Query[] = [];
-  rollback: (...args: any) => any;
+  rollback: Rollback;
 
   constructor(db: DatabaseInterface) {
     this.db = db;
@@ -72,8 +73,8 @@ class Transaction implements TransactionInterface {
       values,
     });
   }
-  setRollback(fn: (...args: any) => any) {
-    if (typeOf(fn) === 'Function') {
+  setRollback(fn?: Rollback) {
+    if (fn && typeOf(fn) === 'Function') {
       this.rollback = fn;
     }
   }
@@ -167,7 +168,7 @@ class Database implements DatabaseInterface {
   }: {
     sql: string;
     values?: QueryValues;
-    rollback?: (...args: any) => any;
+    rollback?: (e?: any) => void;
   }): Promise<T> {
     await this.connect();
 
@@ -218,7 +219,7 @@ class Database implements DatabaseInterface {
     return new Transaction(this);
   }
 
-  async commit(queries: Query[], rollback: (...args: any) => any) {
+  async commit(queries: Query[], rollback: (e?: any) => void) {
     const results = [];
     if (this.client) {
       await this.query({ sql: `START TRANSACTION` });

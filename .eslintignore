@@ -2,3 +2,5 @@ node_modules
 dist
 bin
 jest.config.js
+docker-compose.dockest-generated.yml
+dockest-error.json

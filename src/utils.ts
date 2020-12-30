@@ -1,10 +1,6 @@
 import { typeOf, deepClone } from '@ygkit/object';
 import { AnyObject } from './typings';
 
-const isUndefined = (val: any): boolean => {
-  return val === undefined;
-};
-
 const isObject = (obj: AnyObject): boolean => {
   return typeOf(obj) === 'Object';
 };
@@ -21,4 +17,4 @@ const sleep = (ms: number) => {
   });
 };
 
-export { sleep, typeOf, deepClone, isObject, isUndefined, isEmptyObject };
+export { sleep, typeOf, deepClone, isObject, isEmptyObject };

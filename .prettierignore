@@ -1,3 +1,5 @@
 node_modules
 dist
 CHANGELOG.md
+docker-compose.dockest-generated.yml
+dockest-error.json

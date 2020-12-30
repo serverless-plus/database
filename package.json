@@ -1,6 +1,6 @@
 {
   "name": "@slsplus/database",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Serverless Database Tool",
   "main": "./dist/index.js",
   "publishConfig": {
@@ -44,8 +44,10 @@
   },
   "keywords": [
     "database",
+    "serverless",
     "slsplus",
-    "serverless"
+    "mysql",
+    "postgres"
   ],
   "author": "yugasun",
   "license": "MIT",

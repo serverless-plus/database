@@ -4,7 +4,9 @@
 [![NPM downloads](http://img.shields.io/npm/dm/@slsplus/database.svg?style=flat-square)](http://www.npmtrends.com/@slsplus/database)
 [![Status](https://github.com/serverless-plus/database/workflows/Test/badge.svg)](https://github.com/serverless-plus/database/actions?query=workflow:Test)
 
-Serverless Plus Migrate Tool
+Serverless database tool.
+
+## Support
 
 Support database dirver:
 

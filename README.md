@@ -6,6 +6,12 @@
 
 Serverless database tool.
 
+## Feature
+
+- [x] **Reconnect**, it can reconnect automatically after the connection fails
+- [x] **Clear Zoombie Connections**, it can auto clear the zoombie connections
+- [x] **Transaction Rollback**, support customize rollback for transaction
+
 ## Support
 
 Support database dirver:

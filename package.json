@@ -1,6 +1,6 @@
 {
   "name": "@slsplus/database",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Serverless Database Tool",
   "main": "./dist/index.js",
   "publishConfig": {

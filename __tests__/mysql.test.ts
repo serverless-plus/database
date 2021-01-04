@@ -7,6 +7,7 @@ describe('Mysql test', () => {
   const dbname = 'test';
 
   afterAll(async () => {
+    await db.end();
     await db.close();
   });
   test(`new mysql instance`, async () => {
@@ -21,6 +22,7 @@ describe('Mysql test', () => {
       {
         debug: !process.env.CI,
         connsUtilization: 0,
+        zombieMaxTimeout: 10,
       },
     );
 
@@ -39,7 +41,7 @@ describe('Mysql test', () => {
       getUsedConnsFreq: 0,
       connsUtilization: 0,
       zombieMinTimeout: 3,
-      zombieMaxTimeout: 15 * 60,
+      zombieMaxTimeout: 10,
       onConnect: expect.any(Function),
       onClear: expect.any(Function),
       onConnectError: expect.any(Function),

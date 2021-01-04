@@ -25,7 +25,7 @@ Support database dirver:
 $ npm i @slsplus/database --save
 ```
 
-### Mysql
+### Use with Mysql
 
 Before you use mysql, you should insall `mysql2` dependency:
 
@@ -66,6 +66,9 @@ async function example() {
   /**
    * return {"fieldCount":0,"affectedRows":1,"insertId":1,"info":"","serverStatus":3,"warningStatus":0}
    */
+
+  // close current connection
+  await db.end();
 }
 ```
 

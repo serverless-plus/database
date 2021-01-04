@@ -149,7 +149,7 @@ class Database implements DatabaseInterface {
 
         await sleep(this.options.sleepGap);
 
-        await this._connect();
+        await this.connect();
       } else {
         this.options.onConnectError(e);
       }
@@ -173,18 +173,8 @@ class Database implements DatabaseInterface {
     await this.connect();
 
     if (this.client) {
-      const cmdSql = this.client.format(sql, values);
-
-      // log sql query string in debug mode
-      if (this.options.debug) {
-        console.log(`[Query]: ${cmdSql}`);
-      }
-
       try {
-        const [res] = await this.client.query(cmdSql);
-        if (this.options.debug) {
-          console.log(`[RESULT] ${JSON.stringify(res)}`);
-        }
+        const res = await this._dbQuery({ sql, values });
         return res as T;
       } catch (e) {
         if (this.options.debug) {
@@ -215,10 +205,18 @@ class Database implements DatabaseInterface {
     return {} as T;
   }
 
+  /**
+   * create trarnsaction
+   */
   createTransaction(): TransactionInterface {
     return new Transaction(this);
   }
 
+  /**
+   * commit transaction queries
+   * @param queries sql queries
+   * @param rollback rollback function
+   */
   async commit(queries: Query[], rollback: (e?: any) => void) {
     const results = [];
     if (this.client) {
@@ -235,6 +233,9 @@ class Database implements DatabaseInterface {
     return results;
   }
 
+  /**
+   * close connection
+   */
   async close() {
     if (this.client) {
       await this.client.end();
@@ -244,32 +245,33 @@ class Database implements DatabaseInterface {
     }
   }
 
+  /**
+   * end client, clear all zombies
+   */
   async end() {
     if (this.client !== null) {
       await this._getMaxConnections();
       await this._getTotalConnections();
 
-      if (this.maxConnections.total > 0) {
-        const currentUtilization = this.usedConnections.total / this.maxConnections.total;
+      const currentUtilization = this.usedConnections.total / this.maxConnections.total;
 
-        // if over utilization threshold, clean zombies
-        if (currentUtilization > this.options.connsUtilization) {
-          const timeout = Math.min(
-            Math.max(this.usedConnections.maxAge, this.options.zombieMinTimeout),
-            this.options.zombieMaxTimeout,
-          );
+      // if over utilization threshold, clean zombies
+      if (currentUtilization > this.options.connsUtilization) {
+        const timeout = Math.min(
+          Math.max(this.usedConnections.maxAge, this.options.zombieMinTimeout),
+          this.options.zombieMaxTimeout,
+        );
 
-          // clear zombies, if they are whin the timeout
-          await this._clearZombieConnections(timeout);
+        // clear zombies, if they are whin the timeout
+        const clearedZombies = await this._clearZombieConnections(timeout);
 
-          // if no zombies were cleared, close this connection
-          // if (clearedZombies === 0) {
-          //   await this.close();
-          // }
-        } else if (this.usedConnections.maxAge > this.options.zombieMaxTimeout) {
-          // if zombies exist that are more then max zombie timeout, clear them
-          await this._clearZombieConnections(this.options.zombieMaxTimeout);
+        // if no zombies were cleared, close this connection
+        if (clearedZombies === 0) {
+          await this.close();
         }
+      } else if (this.usedConnections.maxAge > this.options.zombieMaxTimeout) {
+        // if zombies exist that are more then max zombie timeout, clear them
+        await this._clearZombieConnections(this.options.zombieMaxTimeout);
       }
     }
   }
@@ -318,6 +320,11 @@ class Database implements DatabaseInterface {
     return (tables || []) as { [propName: string]: string }[];
   }
 
+  /**
+   * whether table exist
+   * @param dbname database name
+   * @param tableName table name
+   */
   async isTableExist(dbname: string, tableName: string): Promise<boolean> {
     const tables = await this.getTables();
 
@@ -365,12 +372,12 @@ class Database implements DatabaseInterface {
   async _getMaxConnections() {
     if (this.client) {
       if (Date.now() - this.maxConnections.updated > this.options.getMaxConnsFreq) {
-        const [results]: any | undefined = await this.client.query(
-          `SELECT IF (@@max_user_connections > 0,
-          LEAST(@@max_user_connections,@@max_connections),
-          @@max_connections) AS total,
-          IF(@@max_user_connections > 0,true,false) AS userLimit`,
-        );
+        const results: any = await this._dbQuery({
+          sql: `SELECT IF (@@max_user_connections > 0,
+            LEAST(@@max_user_connections,@@max_connections),
+            @@max_connections) AS total,
+            IF(@@max_user_connections > 0,true,false) AS userLimit`,
+        });
 
         if (results) {
           this.maxConnections = {
@@ -389,12 +396,12 @@ class Database implements DatabaseInterface {
   async _getTotalConnections() {
     if (this.client) {
       if (Date.now() - this.usedConnections.updated > this.options.getUsedConnsFreq) {
-        const [results]: any | undefined = await this.client.query(
-          `SELECT COUNT(ID) as total, MAX(time) as max_age
-          FROM information_schema.processlist
-          WHERE (user = ? AND @@max_user_connections > 0) OR true`,
-          [this.connectionOptions.user],
-        );
+        const results: any = await this._dbQuery({
+          sql: `SELECT COUNT(ID) as total, MAX(time) as max_age
+            FROM information_schema.processlist
+            WHERE (user = ? AND @@max_user_connections > 0) OR true`,
+          values: [this.connectionOptions.user],
+        });
 
         if (results) {
           this.usedConnections = {
@@ -407,23 +414,27 @@ class Database implements DatabaseInterface {
     }
   }
 
+  /**
+   * clear zombie connections
+   * @param timeout timeout for sleepy connections
+   */
   async _clearZombieConnections(timeout: number) {
     let clearedZombies = 0;
     if (timeout > this.usedConnections.maxAge || this.client === null) {
       return clearedZombies;
     }
-    const [zombieConnections]: any = await this.client.query(
-      `SELECT ID,time FROM information_schema.processlist
-       WHERE command = 'Sleep' AND time >= ? and user = ?
-       ORDER BY time DESC`,
-      [!isNaN(timeout) ? timeout : 900, this.connectionOptions.user],
-    );
+    const zombieConnections: any = await this._dbQuery({
+      sql: `SELECT ID,time FROM information_schema.processlist
+        WHERE command = 'Sleep' AND time >= ? and user = ?
+        ORDER BY time DESC`,
+      values: [!isNaN(timeout) ? timeout : 900, this.connectionOptions.user],
+    });
 
     if (zombieConnections) {
       for (let i = 0; i < zombieConnections.length; i++) {
         try {
           const zombie = zombieConnections[i];
-          await this.client.query(`KILL ?`, zombie.ID);
+          this._dbQuery({ sql: `KILL ?`, values: zombie.ID });
           this.options.onClear(zombie);
           clearedZombies++;
         } catch (e) {
@@ -432,6 +443,20 @@ class Database implements DatabaseInterface {
       }
     }
     return clearedZombies;
+  }
+
+  async _dbQuery({ sql, values }: { sql: string; values?: QueryValues }) {
+    if (this.client) {
+      const cmdSql = this.client.format(sql, values);
+      const [res] = await this.client.query(cmdSql);
+
+      if (this.options.debug) {
+        console.log(`[Query]: ${cmdSql}`);
+        console.log(`[RESULT] ${JSON.stringify(res)}`);
+      }
+      return res;
+    }
+    return this.query({ sql, values });
   }
 }
 

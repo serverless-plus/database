@@ -11,7 +11,6 @@ async function main() {
     },
     {
       debug: true,
-      connsUtilization: 0,
     },
   );
 
@@ -138,6 +137,9 @@ async function main() {
   /**
    * return [{"fieldCount":0,"affectedRows":1,"insertId":2,"info":"","serverStatus":3,"warningStatus":0},{"fieldCount":0,"affectedRows":1,"insertId":3,"info":"","serverStatus":3,"warningStatus":0},{"fieldCount":0,"affectedRows":1,"insertId":0,"info":"Rows matched: 1  Changed: 1  Warnings: 0","serverStatus":35,"warningStatus":0,"changedRows":1}]
    */
+
+  //  clear up zombie connecitons
+  await db.end();
 }
 
 main();
